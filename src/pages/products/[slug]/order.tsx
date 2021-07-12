@@ -1,15 +1,37 @@
 import Head from 'next/head'
 import { Avatar, ListItemAvatar, ListItem, ListItemText, TextField, Button, Grid, Box, Typography} from "@material-ui/core";
-import {Product} from "../../../models";
+import {CreditCard, Product} from "../../../models";
 import {GetServerSideProps, NextPage} from "next";
+import { useForm } from 'react-hook-form'
 import http from "../../../http";
 import axios from "axios";
+import {useRouter} from "next/router";
+import {useSnackbar} from "notistack";
 
 interface OrderPageProps {
     product: Product
 }
 
 const OrderPage: NextPage<OrderPageProps> = ({product}) => {
+    const router = useRouter()
+    const { enqueueSnackbar } = useSnackbar();
+    const { register, handleSubmit, setValue } = useForm();
+
+    const onSubmit = async ( data: CreditCard ) => {
+        try {
+            const { data: order } = await http.post('orders', {
+                credit_card: data,
+                items: [{product_id: product.id, quantity: 1}],
+            });
+            router.push(`/orders/${order.id}`);
+        } catch (e) {
+            console.error(e)
+            enqueueSnackbar('Erro ao realizar sua compra', {
+                variant: 'error'
+            })
+        }
+
+    }
 
     return (
         <div>
@@ -31,24 +53,24 @@ const OrderPage: NextPage<OrderPageProps> = ({product}) => {
             <Typography component={"h2"} variant={"h6"} gutterBottom>
                 Pague com cartão de crédito
             </Typography>
-            <form>
+            <form onSubmit={handleSubmit(onSubmit)}>
                 <Grid container spacing={3}>
                     <Grid item xs={12} md={6}>
-                        <TextField required label={"Nome"} fullWidth/>
+                        <TextField {...register('name')} required label={"Nome"} fullWidth/>
                     </Grid>
                     <Grid item xs={12} md={6}>
-                        <TextField required label={"Numero do cartão"} fullWidth inputProps={{maxLength: 16}}/>
+                        <TextField {...register('number')} required label={"Numero do cartão"} fullWidth inputProps={{maxLength: 16}}/>
                     </Grid>
                     <Grid item xs={12} md={6}>
-                        <TextField required type="number" label={"CVV"} fullWidth/>
+                        <TextField {...register('cvv')}  required type="number" label={"CVV"} fullWidth/>
                     </Grid>
                     <Grid item xs={12} md={6}>
                         <Grid container spacing={3}>
                             <Grid item xs={6}>
-                                <TextField required type="number" label={"Expiração mês"} fullWidth/>
+                                <TextField {...register('expiration_month')}  required type="number" label={"Expiração mês"} fullWidth onChange={e => setValue('expiration_month', parseInt(e.target.value))}/>
                             </Grid>
                             <Grid item xs={6}>
-                                <TextField required type="number" label={"Expiração ano"} fullWidth/>
+                                <TextField {...register('expiration_year')} required type="number" label={"Expiração ano"} fullWidth onChange={e => setValue('expiration_year', parseInt(e.target.value))}/>
                             </Grid>
                         </Grid>
                     </Grid>
@@ -69,7 +91,6 @@ export const getServerSideProps: GetServerSideProps<OrderPageProps, {slug: strin
     const { slug } = context.params!
     try {
         const {data: product} = await http.get(`products/${slug}`)
-        console.log(product)
         return {
             props: {
                 product,

@@ -52,7 +52,6 @@ export const getStaticProps: GetStaticProps<ProductDetailPageProps, { slug: stri
     const { slug } = context.params!
     try {
         const {data: product} = await http.get(`products/${slug}`)
-        console.log(product)
         return {
             props: {
                 product,
@@ -70,6 +69,7 @@ export const getStaticProps: GetStaticProps<ProductDetailPageProps, { slug: stri
 
 export const getStaticPaths: GetStaticPaths = async (context) => {
     const {data: products } = await http.get(`products`)
+    console.log("aaaaa")
 
     const paths = products.map((p: Product) => ({
         params: {slug: p.slug},
